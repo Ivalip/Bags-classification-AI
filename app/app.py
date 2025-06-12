@@ -162,24 +162,34 @@ def get_status(code):
 
 @app.route('/<code>/download', methods=['GET'])
 def download_latest(code):
+    ic("Downloading!")
     base = os.path.join(app.config['BASE_UPLOAD_PATH'], code)
     if not os.path.isdir(base):
+        ic("Invalid code")
         return jsonify(error="Invalid code"), 404
 
-    all_files = []
-    for sub in ('images', 'videos'):
-        d = os.path.join(base, sub)
-        if os.path.isdir(d):
-            for fn in os.listdir(d):
-                path = os.path.join(d, fn)
-                all_files.append((path, os.path.getmtime(path)))
+    folder = None
+    filename = None
+    # all_files = []
+    for type in ('image', 'video'):
+        media_path = os.path.join(base, type)
+        if os.path.isdir(media_path):
+            for fn in os.listdir(media_path):
+                if "labeled" in fn:
+                    # folder = os.path.join(media_path, fn)
+                    folder = media_path
+                    filename = fn
+                    break
+                    # all_files.append((path, os.path.getmtime(path)))
+    ic(folder, filename)
 
-    if not all_files:
+    if filename is None:
+        ic("No uploads")
         return jsonify(error="No uploads"), 404
-    latest, _ = max(all_files, key=lambda x: x[1])
-    folder, fn = os.path.split(latest)
-
-    return send_from_directory(folder, fn, as_attachment=False)
+    # latest, _ = max(all_files, key=lambda x: x[1])
+    # folder, fn = os.path.split(latest)
+    
+    return send_from_directory(folder, filename, as_attachment=False)
 
 
 @app.route('/test')

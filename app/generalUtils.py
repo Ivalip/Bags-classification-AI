@@ -69,9 +69,7 @@ print("IMG IS", img is not None)
         # Invalid SOS parameters for sequential JPEG
         # WARNING ⚠️ Image Read Error E:\Documents\# Projects\Bags-classification-AI\app\temp\53Jqi\image\20250526_075840.jpg
 
-        # is_valid = "IMG IS True" in stdout and "Invalid SOS" not in stderr
-        # is_valid = "IMG IS True" in stdout and len(stderr)==0
-        if len(stderr)!=0:
+        if not ("Invalid" in stderr or "Error" in stderr or "Corrupt" in stderr):
             ic(stdout)
             ic(stderr)
             return None
