@@ -16,6 +16,7 @@ app.config['BASE_UPLOAD_PATH'] = 'temp'
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 
 # Очистим папку при старте
+os.makedirs(app.config['BASE_UPLOAD_PATH'], exist_ok=True)
 emptyFolder(app.config['BASE_UPLOAD_PATH'])
 Log.basicConfig(level=Log.INFO, filename="py_log.log", filemode="w",
                 format="%(asctime)s %(levelname)s %(message)s")
@@ -105,6 +106,10 @@ def post_media(code, type):
     Log.info(f"Received filename: {uploaded_file.filename}, mimetype: {uploaded_file.mimetype}")
     saved_filename = save_file(code, type, uploaded_file, app.config['BASE_UPLOAD_PATH'], acceptable_extension[type])
 
+    if saved_filename is None:
+        ic("Image corrupted")
+        return jsonify(error=f"Image corrupted"), 415
+
     # Запуск сканирования файла
     filepath = os.path.join(base_dir, type)
     ic("Scanning started for ", filepath)
@@ -143,10 +148,16 @@ def get_status(code):
     videos = os.listdir(os.path.join(base_dir, 'video'))
     # Возврат списков изображений и видео
     ic("GET Message for status", images, videos)
-
+    
+    res = scanner.get_prediction(code)
+    ic("Prediction:",res)
+    # stats = {"handbags": res["Пакет"], "handbags": res["Сумка"], "suitcases": res["Чемодан"], "backpacks": res["Рюкзак"]}
+    # if isinstance(res, dict):
+    #     ic("is dict")
+    #     return jsonify(stats)
+    return jsonify(res)
     # Возврат подсчета сумок
-    stats = {"bags": "4", "luggages": "6", "backpacks": "0"}
-    return jsonify(images=images, videos=videos)
+    # return jsonify(images=images, videos=videos)
 
 
 @app.route('/<code>/download', methods=['GET'])

@@ -10,7 +10,9 @@ class Scanner():
     def __init__(self):
         self.model_path = 'models/20250610_205550_yolo11m_reducedBoxSize08.pt'
         self.model = YOLO(self.model_path)
+        self.classes = [self.model.names[k] for k in sorted(self.model.names)]
         ic("YOLO model have been imported")
+        ic(self.classes)
         # Создаём пул потоков
         self.executor = ThreadPoolExecutor(max_workers=20)
         self.pool = {}
@@ -30,27 +32,28 @@ class Scanner():
     # GET-signal get_prediction
     def get_prediction(self, code):
         if code not in self.pool:
-            return "This code doesn't exist: Prediction have been made or haven't been made before"
+            return {"status": "Prediction has been done before"}
         if not self.pool[code].done():
-            return "Scanning still going"
+            return {"status": "Scanning still going"}
         result = self.pool[code].result()
+        result["status"] = "Scanning is Done!"
         del self.pool[code]
         return result
     def scan_image(self, file_path):
         # TODO: complete this method
         filename = os.listdir(file_path)[-1]
+        ic("in scan_image", filename)
         results = self.model(os.path.join(file_path, filename))
-        res = ""
+        ic("Image scanned")
         for r in results:
-            # for c in r.boxes.cls:
-            #     res = model.names[int(c)]
-            # print(res)
-            words_array = [(self.model.names[i.cls.item()], i.conf.item()) for i in r.boxes]
-            # print(*words_array)
-            res = words_array
+            res = [(self.model.names[i.cls.item()], i.conf.item()) for i in r.boxes]
             r.save(filename=f'{file_path}/{filename}_labeled.jpg')
         ic(res)
-        return res
+        rename_dict = {"Пакет": "bags", "Сумка":"handbags", "Чемодан":"suitcases", "Рюкзак":"backpacks"}
+        bag_count = {rename_dict[class_name]: sum(1 for item in res if item[0] == class_name) for class_name in self.classes}
+        ic(bag_count)
+        return bag_count
+
     def scan_video(self, file_path):
         filename = os.listdir(file_path)[-1]
         cap = cv2.VideoCapture(os.path.join(file_path, filename))
