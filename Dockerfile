@@ -10,27 +10,9 @@
 
 # =========================================================================
 
-# # Используем официальный базовый образ Python
-# FROM python:3.11-slim
-
 # # Устанавливаем переменные окружения
 # ENV PYTHONDONTWRITEBYTECODE=1
 # ENV PYTHONUNBUFFERED=1
-
-# # Создаем рабочую директорию внутри контейнера
-# WORKDIR /app
-
-# # Копируем только нужные файлы и папки
-# COPY requirements.txt .
-# RUN pip install --no-cache-dir -r requirements.txt
-
-# # Копируем остальные необходимые файлы
-# COPY app.py .
-# COPY aiPredict.py .
-# COPY generalUtils.py .
-# COPY models ./models
-# COPY templates ./templates
-# COPY test ./test
 
 # # Открываем нужный порт (предположим, что используется 8000)
 # EXPOSE 8000
@@ -40,18 +22,30 @@
 
 # ==================================================================
 
+# Базовый образ
 FROM python:3.11-slim
 
+# Установка системных зависимостей
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Установка рабочей директории
 WORKDIR /app
 
+# Копируем зависимости
 COPY requirements.txt .
-# RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app/ ./app
-COPY templates/ ./templates
+# Устанавливаем зависимости
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем тесты (если нужно запускать pytest)
-COPY tests/ ./tests
+# Копируем исходный код приложения и тесты
+COPY app/ ./app/
+COPY tests/ ./tests/
 
-EXPOSE 8000
-CMD ["python", "app/app.py"]
+# Переменная окружения для Flask
+ENV FLASK_APP=app
+ENV FLASK_ENV=production
+
+# Команда по умолчанию — запуск тестов
+CMD ["pytest", "tests"]
