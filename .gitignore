@@ -1,2 +1,6 @@
 __pycache__
 *.log
+.MoveThis
+.pytest_cache
+*.jpg
+*.png
