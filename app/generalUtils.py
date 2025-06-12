@@ -54,16 +54,15 @@ def save_file(code, type, uploaded_file, base_upload_path, allowed_exts):
         ic("Checking image for corruption")
         code = f'''
 import cv2
-img = cv2.imread("{path}")
-print(img is not None)
+print(cv2.imread("{path}") is not None)
 '''
         result = subprocess.run(
             [sys.executable, "-c", code],
             capture_output=True,
             text=True
         )
-        # import cv2
-        # cv2.imread(path)
+        import cv2
+        cv2.imread(path)
         stderr = result.stderr.strip()
         stdout = result.stdout.strip()
         ic("stdout", stdout)
