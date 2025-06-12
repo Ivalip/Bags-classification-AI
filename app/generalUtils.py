@@ -51,27 +51,29 @@ def save_file(code, type, uploaded_file, base_upload_path, allowed_exts):
     # Сохранение файла по пути
     uploaded_file.save(path)
     if type == "image":
+        ic("Checking image for corruption")
         code = f'''
 import cv2
 img = cv2.imread("{path}")
-print("IMG IS", img is not None)
+print(img is not None)
 '''
         result = subprocess.run(
             [sys.executable, "-c", code],
             capture_output=True,
             text=True
         )
-        
+        # import cv2
+        # cv2.imread(path)
         stderr = result.stderr.strip()
         stdout = result.stdout.strip()
+        ic("stdout", stdout)
+        ic("stderr", stderr)
 
         # Corrupt JPEG data: premature end of data segment
         # Invalid SOS parameters for sequential JPEG
-        # WARNING ⚠️ Image Read Error E:\Documents\# Projects\Bags-classification-AI\app\temp\53Jqi\image\20250526_075840.jpg
+        # WARNING ⚠️ Image Read Error 
 
-        if not ("Invalid" in stderr or "Error" in stderr or "Corrupt" in stderr):
-            ic(stdout)
-            ic(stderr)
+        if "False" in stdout:
             return None
 
 
