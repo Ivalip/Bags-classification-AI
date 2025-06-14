@@ -72,8 +72,8 @@ print(cv2.imread("{path}") is not None)
         # Invalid SOS parameters for sequential JPEG
         # WARNING ⚠️ Image Read Error 
 
-        if "False" in stdout:
-            return None
+        # if "False" in stdout:
+        #     return None
 
 
     # Возврат название файла 

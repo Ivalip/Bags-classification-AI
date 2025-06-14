@@ -8,7 +8,7 @@ ic("ultralytics has been imported")
 
 class Scanner():
     def __init__(self):
-        self.model_path = 'models/20250610_205550_yolo11m_reducedBoxSize08.pt'
+        self.model_path = 'models/20250613_161906_yolo11m_MEGA_5hr.pt'
         self.model = YOLO(self.model_path)
         self.classes = [self.model.names[k] for k in sorted(self.model.names)]
         ic("YOLO model have been imported")
@@ -36,6 +36,7 @@ class Scanner():
         if not self.pool[code].done():
             return {"status": "Scanning still going"}
         result = self.pool[code].result()
+        ic(result)
         result["status"] = "Scanning is Done!"
         del self.pool[code]
         return result
@@ -64,6 +65,15 @@ class Scanner():
                             (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
                             int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))))
 
+        # Initialize object counter object
+        counter = solutions.ObjectCounter(
+            show=True,  # display the output
+            # region=region_points,  # pass region points
+            model=self.model_path,  # model="yolo11n-obb.pt" for object counting with OBB model.
+            # classes=[0, 2],  # count specific classes i.e. person and car with COCO pretrained model.
+            tracker="botsort.yaml",  # choose trackers i.e "bytetrack.yaml"
+        )
+
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
@@ -71,6 +81,9 @@ class Scanner():
 
             # Выполнить инференс и получить результат
             results = self.model(frame, verbose=False)
+
+            # results = counter(frame)
+            # print(results)
 
             # Визуализировать результаты прямо на кадре
             annotated_frame = results[0].plot()
@@ -125,7 +138,7 @@ class Scanner():
         # # cv2.destroyAllWindows()
 
         # print(f"Объектов найдено: {len(counted_ids)}")
-        return "test"
+        return {"bags": 5, "handbags": 5, "suitcases": 5, "backpacks": 5}
 
 
 # import time
