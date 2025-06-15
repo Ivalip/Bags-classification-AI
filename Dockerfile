@@ -23,10 +23,10 @@
 # Базовый образ
 FROM python:3.11-slim
 
-# Установка системных зависимостей
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+# # Установка системных зависимостей
+# RUN apt-get update && apt-get install -y \
+#     build-essential \
+#     && rm -rf /var/lib/apt/lists/*
 
 # Установка рабочей директории
 WORKDIR /app
@@ -39,17 +39,18 @@ RUN apt-get update && apt-get install -y \
 
 # Копируем зависимости
 COPY requirements.txt .
-
-# Устанавливаем зависимости
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Устанавливаем зависимости
+
 # Копируем исходный код приложения и тесты
-COPY app/ ./app/
-COPY tests/ ./tests/
+COPY . .
+# COPY app/ ./app/
+# COPY tests/ ./tests/
 
 # Переменная окружения для Flask
-ENV FLASK_APP=app
-ENV FLASK_ENV=production
+# ENV FLASK_APP=app
+# ENV FLASK_ENV=production
 
 # # Команда по умолчанию — запуск тестов
 # CMD ["pytest", "tests"]
