@@ -11,7 +11,7 @@ from aiPredict import Scanner
 scanner = Scanner()
 # ---------------------------------
 app = Flask(__name__)
-app.config['BASE_UPLOAD_PATH'] = 'temp'
+app.config['BASE_UPLOAD_PATH'] = 'app/temp'
 # Максимальный размер запроса: 500 МБ
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 
