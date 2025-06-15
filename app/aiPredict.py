@@ -1,7 +1,9 @@
 import os
 import cv2
+import supervision as sv
 from icecream import ic
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from collections import defaultdict
 # --------- Import YOLO -----------
 from ultralytics import YOLO, solutions
 ic("ultralytics has been imported")
@@ -9,13 +11,28 @@ ic("ultralytics has been imported")
 class Scanner():
     def __init__(self):
         self.model_path = 'models/20250613_161906_yolo11m_MEGA_5hr.pt'
-        self.model = YOLO(self.model_path)
+        self.model = YOLO(self.model_path, task='detect')
         self.classes = [self.model.names[k] for k in sorted(self.model.names)]
+        self.tracker = sv.ByteTrack()
         ic("YOLO model have been imported")
         ic(self.classes)
         # Создаём пул потоков
         self.executor = ThreadPoolExecutor(max_workers=20)
         self.pool = {}
+    def rename_keys(original_dict):
+        """
+        Заменяет ключи в original_dict согласно rename_map.
+
+        :param original_dict: исходный словарь
+        :param rename_map: словарь вида {старое_имя: новое_имя}
+        :return: новый словарь с переименованными ключами
+        """
+        rename_interface = {"Пакет": "bags", "Сумка":"handbags", "Чемодан":"suitcases", "Рюкзак":"backpacks"}
+        return {
+            rename_interface.get(key, key): value
+            for key, value in original_dict.items()
+        }
+
     # POST-signal scan
     def scan(self, code, file_path, type):
         if type == "image":
@@ -50,10 +67,9 @@ class Scanner():
             res = [(self.model.names[i.cls.item()], i.conf.item()) for i in r.boxes]
             r.save(filename=f'{file_path}/{filename}_labeled.jpg')
         ic(res)
-        rename_dict = {"Пакет": "bags", "Сумка":"handbags", "Чемодан":"suitcases", "Рюкзак":"backpacks"}
-        bag_count = {rename_dict[class_name]: sum(1 for item in res if item[0] == class_name) for class_name in self.classes}
+        bag_count = {class_name: sum(1 for item in res if item[0] == class_name) for class_name in self.classes}
         ic(bag_count)
-        return bag_count
+        return Scanner.rename_keys(bag_count)
 
     def scan_video(self, file_path):
         filename = os.listdir(file_path)[-1]
@@ -66,79 +82,57 @@ class Scanner():
                             int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))))
 
         # Initialize object counter object
-        counter = solutions.ObjectCounter(
-            show=True,  # display the output
-            # region=region_points,  # pass region points
-            model=self.model_path,  # model="yolo11n-obb.pt" for object counting with OBB model.
-            # classes=[0, 2],  # count specific classes i.e. person and car with COCO pretrained model.
-            tracker="botsort.yaml",  # choose trackers i.e "bytetrack.yaml"
-        )
+        # counter = solutions.ObjectCounter(
+        #     show=True,  # display the output
+        #     # region=region_points,  # pass region points
+        #     model=self.model_path,  # model="yolo11n-obb.pt" for object counting with OBB model.
+        #     # classes=[0, 2],  # count specific classes i.e. person and car with COCO pretrained model.
+        #     tracker="botsort.yaml",  # choose trackers i.e "bytetrack.yaml"
+        # )
+
+
+        unique_ids_per_class = defaultdict(set)
+        class_names = self.model.names
+
 
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
                 break
+            
+            # Предсказываем 
+            results = self.model(frame, verbose=False)[0]
 
-            # Выполнить инференс и получить результат
-            results = self.model(frame, verbose=False)
+            # Нарисовать разметку на кадре
+            out.write(results.plot())
+
+            #--------------------- Подсчет --------------------
+            detections = sv.Detections.from_ultralytics(results)
+
+            # Применяем трекинг: к входу ByteTrack нужен именно объект sv.Detections
+            tracked = self.tracker.update_with_detections(detections)
+
+            # tracked — это объект sv.Detections с дополненными атрибутами tracker_id и class_id
+            for cls_id, track_id in zip(tracked.class_id, tracked.tracker_id):
+                unique_ids_per_class[class_names[int(cls_id)]].add(int(track_id))
+            #--------------------------------------------------
 
             # results = counter(frame)
             # print(results)
 
-            # Визуализировать результаты прямо на кадре
-            annotated_frame = results[0].plot()
-
-            # Записать кадр
-            out.write(annotated_frame)
-
-            # Отображение (опционально)
-            # cv2.imshow('YOLOv8 Detection', annotated_frame)
-            # if cv2.waitKey(1) & 0xFF == ord('q'):
-            #     break
-
         cap.release()
         out.release()
+
         cv2.destroyAllWindows()
-        ic("done")
-        # cv2.destroyAllWindows()  # destroy all opened windows
 
-        # # Открываем видео
-        # cap = cv2.VideoCapture(os.path.join(file_path, os.listdir(file_path)[-1]))
+        ic("Video is done scanning")
 
-        # # Уникальные ID обнаруженных объектов
-        # counted_ids = set()
+        final_counts = {cls: len(ids) for cls, ids in unique_ids_per_class.items()}
 
-        # # Класс объекта, который нужно считать (например, человек = class_id 0 в COCO)
-        # target_class_id = 0
-
-        # while True:
-        #     ret, frame = cap.read()
-        #     if not ret:
-        #         break
-
-        #     # Обнаружение и трекинг
-        #     results = self.model.track(frame, persist=True, conf=0.4, classes=[target_class_id])
-
-        #     if results[0].boxes.id is not None:
-        #         ids = results[0].boxes.id.cpu().numpy()
-        #         classes = results[0].boxes.cls.cpu().numpy()
-
-        #         for obj_id, cls in zip(ids, classes):
-        #             if cls == target_class_id and obj_id not in counted_ids:
-        #                 counted_ids.add(obj_id)
-
-        #     # (Необязательно) Показываем кадр
-        #     annotated_frame = results[0].plot()
-        #     cv2.imshow("Tracking", annotated_frame)
-
-        #     if cv2.waitKey(1) & 0xFF == ord('q'):
-        #         break
-
-        # cap.release()
-        # # cv2.destroyAllWindows()
-
-        # print(f"Объектов найдено: {len(counted_ids)}")
-        return {"bags": 5, "handbags": 5, "suitcases": 5, "backpacks": 5}
+        # bag_count = {self.rename_interface[class_name]: sum(1 for item in res if item[0] == class_name) for class_name in self.classes}
+        ic(final_counts)
+        return Scanner.rename_keys(final_counts)
+        # return {"bags": 5, "handbags": 5, "suitcases": 5, "backpacks": 5}
 
 
 # import time
