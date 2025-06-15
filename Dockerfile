@@ -31,6 +31,12 @@ RUN apt-get update && apt-get install -y \
 # Установка рабочей директории
 WORKDIR /app
 
+# Устанавливаем системные библиотеки, включая libGL
+RUN apt-get update && apt-get install -y \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Копируем зависимости
 COPY requirements.txt .
 
