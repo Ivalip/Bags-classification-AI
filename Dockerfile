@@ -52,4 +52,4 @@ ENV FLASK_ENV=production
 EXPOSE 5000
 
 # Команда по умолчанию для запуска сервера
-CMD ["python", "app.py"]
+CMD ["python", "app/app.py"]
