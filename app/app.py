@@ -11,7 +11,7 @@ from aiPredict import Scanner
 scanner = Scanner()
 # ---------------------------------
 app = Flask(__name__)
-app.config['BASE_UPLOAD_PATH'] = 'app/temp'
+app.config['BASE_UPLOAD_PATH'] = 'temp'
 # Максимальный размер запроса: 500 МБ
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 
@@ -188,8 +188,10 @@ def download_latest(code):
         return jsonify(error="No uploads"), 404
     # latest, _ = max(all_files, key=lambda x: x[1])
     # folder, fn = os.path.split(latest)
-    
-    return send_from_directory(folder, filename, as_attachment=False)
+    ic("Gotta download!")
+    download_file = send_from_directory(folder, filename, as_attachment=False)
+    ic(download_file)
+    return download_file
 
 
 @app.route('/test')

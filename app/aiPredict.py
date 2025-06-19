@@ -10,7 +10,7 @@ ic("ultralytics has been imported")
 
 class Scanner():
     def __init__(self):
-        self.model_path = 'app/models/20250613_161906_yolo11m_MEGA_5hr.pt'
+        self.model_path = 'models/20250613_161906_yolo11m_MEGA_5hr.pt'
         self.model = YOLO(self.model_path, task='detect')
         self.classes = [self.model.names[k] for k in sorted(self.model.names)]
         self.tracker = sv.ByteTrack()
@@ -55,7 +55,7 @@ class Scanner():
         result = self.pool[code].result()
         ic(result)
         result["status"] = "Scanning is Done!"
-        del self.pool[code]
+        # del self.pool[code]
         return result
     def scan_image(self, file_path):
         # TODO: complete this method
